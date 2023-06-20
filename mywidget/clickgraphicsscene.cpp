@@ -7,7 +7,7 @@ ClickGraphicsScene::ClickGraphicsScene(QObject* parent)
 
 ClickGraphicsScene::ClickGraphicsScene(const QSize& size)
 {
-    qDebug("size: %d %d\n", size.width(), size.height());
+    qDebug("size: %d %d", size.width(), size.height());
     mapCanvas = std::make_unique<QPixmap>(size.width(), size.height());
     mapCanvas->fill();
     this->setSceneRect(0, 0, size.width(), size.height());
@@ -45,7 +45,7 @@ void ClickGraphicsScene::mousePressEvent(QGraphicsSceneMouseEvent* event)
             std::find_if(ellipseItems.cbegin(), ellipseItems.cend(),
                          [&item](const auto& a) { return a.get() == item; }));
     }
-    qDebug("point cnt:%d\n", ellipseItems.size());
+    qDebug("point cnt:%lld", ellipseItems.size());
 }
 
 void ClickGraphicsScene::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
