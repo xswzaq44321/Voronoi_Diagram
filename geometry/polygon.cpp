@@ -104,6 +104,20 @@ bool Polygon::isComplete()
     return s.size() == 0;
 }
 
+template <typename T>
+struct is_comparable {
+    template <typename U>
+    using comparability = decltype(std::declval<U>() < std::declval<U>());
+    template <typename U, class = std::void_t<>>
+    struct test : std::false_type {
+    };
+    template <typename U>
+    struct test<U, std::void_t<comparability<U>>> : std::true_type {
+    };
+
+    static constexpr bool value = test<T>::value;
+};
+
 template <typename It1, typename It2>
 void pairsort(It1 first, It1 last, It2 pFirst)
 {
@@ -111,12 +125,18 @@ void pairsort(It1 first, It1 last, It2 pFirst)
     using T2 = typename std::iterator_traits<It2>::value_type;
     std::vector<std::pair<T1, T2>> pairArr;
     pairArr.reserve(std::distance(first, last));
+
+    std::sort(pairArr.begin(), pairArr.end(), [](const auto& a, const auto& b) {
+        if constexpr (is_comparable<decltype(a.second)>::value) {
+            if (a.first == b.first)
+                return a.second < b.second;
+        }
+        return a.first < b.first;
+    });
+
     for (auto it = first, pit = pFirst; it != last; ++it, ++pit) {
         pairArr.push_back({std::move(*it), std::move(*pit)});
     }
-
-    std::sort(pairArr.begin(), pairArr.end(),
-              [](const auto& a, const auto& b) { return a.first < b.first; });
 
     for (auto& val : pairArr) {
         *(first++) = std::move(val.first);
