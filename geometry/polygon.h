@@ -7,8 +7,6 @@
 #include "edge.h"
 #include "point.h"
 
-#define PI (3.1415926535)
-
 class Edge;
 class Point;
 
@@ -21,8 +19,7 @@ public:
     Polygon(double focusx, double focusy);
     ~Polygon() = default;
 
-    std::vector<Edge> edges;
-    std::vector<Point> vertices;
+    std::vector<std::shared_ptr<Edge>> edges;
     Point focus;
 
     bool contains(const Point& other);
@@ -30,6 +27,8 @@ public:
     void organize();
     void unOrganize();
     bool isComplete();
+
+    bool operator==(const Polygon& other) const;
 
 private:
     bool organized;

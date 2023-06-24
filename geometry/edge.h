@@ -10,18 +10,16 @@
 class Edge
 {
 public:
-    Edge();
-    Edge(Point a, Point b);
+    Edge() = default;
+    Edge(const Point& a, const Point& b);
     Edge(const Edge& other) = default;
-    Edge(Edge&& other) = default;
     Edge& operator=(const Edge& other) = default;
     Edge& operator=(Edge&& other) = default;
     ~Edge() = default;
 
     // edge defined as from point a to point b
-    Point a;
-    Point b;
-    bool isComplete;
+    std::shared_ptr<Point> a;
+    std::shared_ptr<Point> b;
 
     double distance(const Point& other) const;
 };

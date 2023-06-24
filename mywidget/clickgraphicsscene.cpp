@@ -15,7 +15,7 @@ ClickGraphicsScene::ClickGraphicsScene(const QSize& size)
     mapCanvasItem->setZValue(-10000);
 }
 
-void ClickGraphicsScene::addPoint(QPointF pos)
+void ClickGraphicsScene::addPoint(const QPointF& pos)
 {
     if (!this->sceneRect().contains(pos))
         return;
@@ -23,7 +23,8 @@ void ClickGraphicsScene::addPoint(QPointF pos)
         std::make_shared<MyQGraphicsEllipseItem>(pos.x(), pos.y(), 5, 5);
     item->setPos(item->pos());
     this->addItem(item.get());
-    ellipseItems.push_back(std::move(item));
+    ellipseItems.push_back(item);
+    emit pointAdded(item.get());
 }
 
 void ClickGraphicsScene::mousePressEvent(QGraphicsSceneMouseEvent* event)
@@ -41,22 +42,24 @@ void ClickGraphicsScene::mousePressEvent(QGraphicsSceneMouseEvent* event)
         if (item == nullptr || draggedObj)
             return;
         this->removeItem(item);
+        emit pointRemoved(item);
         ellipseItems.erase(
             std::find_if(ellipseItems.cbegin(), ellipseItems.cend(),
                          [&item](const auto& a) { return a.get() == item; }));
     }
-    qDebug("point cnt:%lld", ellipseItems.size());
+    //    qDebug("point cnt:%lld", ellipseItems.size());
 }
 
 void ClickGraphicsScene::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 {
     if (draggedObj != nullptr) {
         QPointF newPos =
-            draggedObj->centerPos() + (event->scenePos() - MousePrevPoint);
+            draggedObj->pos() + (event->scenePos() - MousePrevPoint);
         if (this->sceneRect().contains(newPos)) {
-            draggedObj->setCenterPos(newPos.x(), newPos.y());
+            draggedObj->setPos(newPos.x(), newPos.y());
         }
         MousePrevPoint = event->scenePos();
+        emit pointMoved(draggedObj);
     }
 }
 

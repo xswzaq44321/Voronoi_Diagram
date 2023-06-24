@@ -9,12 +9,9 @@ class PointF;
 class Point
 {
 public:
-    Point();
+    Point() = default;
     Point(int x, int y);
-    Point(const Point* old);
-    Point(const Point& old);
-    Point(Point&& old);
-    Point(const PointF* old);
+    Point(const Point& old) = default;
     Point(const PointF& old);
     ~Point() = default;
 
@@ -22,21 +19,19 @@ public:
     int y;
 
     double distance(const Point& other) const;
+
     explicit operator PointF() const;
     bool operator()(const Point& lhs, const Point& rhs);
     Point& operator=(const Point& rhs);
     bool operator==(const Point& rhs) const;
-    bool operator<(const Point& rhs) const;
 };
 
 class PointF
 {
 public:
-    PointF();
+    PointF() = default;
     PointF(double x, double y);
-    PointF(const PointF* old);
-    PointF(const PointF& old);
-    PointF(const Point* old);
+    PointF(const PointF& old) = default;
     PointF(const Point& old);
     ~PointF() = default;
 
@@ -44,7 +39,9 @@ public:
     double y;
 
     double distance(const PointF& other) const;
+
     explicit operator Point() const;
+    bool operator==(const Point& rhs) const;
 };
 
 /**

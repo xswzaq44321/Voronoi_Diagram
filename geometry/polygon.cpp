@@ -1,5 +1,7 @@
 #include "polygon.h"
 
+#define PI (3.1415926535)
+
 Polygon::Polygon()
     : organized(false)
 {
@@ -7,10 +9,8 @@ Polygon::Polygon()
 
 Polygon::Polygon(const Polygon& old)
 {
-    for (const auto& edge : old.edges) {
-        this->edges.push_back(edge);
-    }
-    this->focus = new Point(old.focus);
+    this->edges = old.edges;
+    this->focus = Point(old.focus);
     // if old one is organized, since we are copying edges in order,
     // new one must also been organized, vice versa.
     this->organized = old.organized;
@@ -22,7 +22,7 @@ Polygon::Polygon(Point f)
 }
 
 Polygon::Polygon(double focusx, double focusy)
-    : focus(new Point((int) focusx, (int) focusy))
+    : focus(Point((int) focusx, (int) focusy))
 {
 }
 
@@ -32,8 +32,8 @@ bool Polygon::contains(const Point& other)
         organize();
     if (!this->isComplete())
         return false;
-    for (const auto& edge : edges) {
-        if (cross(edge.a, edge.b, other) < 0)
+    for (const auto& edge_ptr : edges) {
+        if (cross(*edge_ptr->a, *edge_ptr->b, other) < 0)
             return false;
     }
     return true;
@@ -50,8 +50,8 @@ void Polygon::organize()
     std::vector<double> edgeDegrees(edges.size());
     for (size_t i = 0; i < edges.size(); i++) {
         // add average degree of edge to array for sorting uses later
-        double ta = atan2(edges[i].a.y - focus.y, edges[i].a.x - focus.x);
-        double tb = atan2(edges[i].b.y - focus.y, edges[i].b.x - focus.x);
+        double ta = atan2(edges[i]->a->y - focus.y, edges[i]->a->x - focus.x);
+        double tb = atan2(edges[i]->b->y - focus.y, edges[i]->b->x - focus.x);
         double degree = (ta + tb) / 2;
         if (abs(ta - tb) > PI) {
             degree += PI;
@@ -71,7 +71,7 @@ void Polygon::organize()
                 tb += 2 * PI;
         }
         if (ta >= tb) {
-            std::swap(edges[i].a, edges[i].b);
+            std::swap(edges[i]->a, edges[i]->b);
         }
     }
     pairsort(edgeDegrees.begin(), edgeDegrees.end(), edges.begin());
@@ -85,23 +85,38 @@ void Polygon::unOrganize()
 
 bool Polygon::isComplete()
 {
-    std::set<Point> s;
-    for (const Edge& it : edges) {
+    auto cmp = [](const Point& a, const Point& b) {
+        if (a.x == b.x)
+            return a.y < b.y;
+        return a.x < b.x;
+    };
+    std::set<Point, decltype(cmp)> s(cmp);
+    for (const auto& edge_ptr : edges) {
+        const Edge& cur = *edge_ptr;
         // incomplete edge
-        if (!it.isComplete)
+        if (!cur.a || !cur.b)
             return false;
-        if (s.count(it.a)) {
-            s.erase(it.a);
+        if (s.count(*cur.a)) {
+            s.erase(*cur.a);
         } else {
-            s.insert(it.a);
+            s.insert(*cur.a);
         }
-        if (s.count(it.b)) {
-            s.erase(it.b);
+        if (s.count(*cur.b)) {
+            s.erase(*cur.b);
         } else {
-            s.insert(it.b);
+            s.insert(*cur.b);
         }
     }
     return s.size() == 0;
+}
+
+bool Polygon::operator==(const Polygon& other) const
+{
+    if (!(this->focus == other.focus))
+        return false;
+    if (!(this->edges == other.edges))
+        return false;
+    return true;
 }
 
 template <typename T>
@@ -125,6 +140,9 @@ void pairsort(It1 first, It1 last, It2 pFirst)
     using T2 = typename std::iterator_traits<It2>::value_type;
     std::vector<std::pair<T1, T2>> pairArr;
     pairArr.reserve(std::distance(first, last));
+    for (auto it = first, pit = pFirst; it != last; ++it, ++pit) {
+        pairArr.push_back({std::move(*it), std::move(*pit)});
+    }
 
     std::sort(pairArr.begin(), pairArr.end(), [](const auto& a, const auto& b) {
         if constexpr (is_comparable<decltype(a.second)>::value) {
@@ -133,10 +151,6 @@ void pairsort(It1 first, It1 last, It2 pFirst)
         }
         return a.first < b.first;
     });
-
-    for (auto it = first, pit = pFirst; it != last; ++it, ++pit) {
-        pairArr.push_back({std::move(*it), std::move(*pit)});
-    }
 
     for (auto& val : pairArr) {
         *(first++) = std::move(val.first);

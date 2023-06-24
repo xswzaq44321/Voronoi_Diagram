@@ -82,6 +82,9 @@
    </property>
   </action>
   <action name="actionToggle_T">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>Toggle (T)</string>
    </property>

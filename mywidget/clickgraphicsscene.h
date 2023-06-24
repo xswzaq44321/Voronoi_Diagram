@@ -7,21 +7,26 @@
 
 #include <QDebug>
 
-#include "geometry/polygon.h"
 #include "myqgraphicsellipseitem.h"
 
 class ClickGraphicsScene : public QGraphicsScene
 {
+    Q_OBJECT
 public:
     explicit ClickGraphicsScene(QObject* parent = nullptr);
     ClickGraphicsScene(const QSize& size);
 
     std::unique_ptr<QPixmap> mapCanvas;
-    QVector<std::shared_ptr<MyQGraphicsEllipseItem>> ellipseItems;
-    QVector<std::shared_ptr<QGraphicsLineItem>> lineItems;
-    QVector<std::shared_ptr<QGraphicsItem>> assistantItems;
+    std::vector<std::shared_ptr<MyQGraphicsEllipseItem>> ellipseItems;
+    std::vector<std::shared_ptr<QGraphicsLineItem>> lineItems;
+    std::vector<std::shared_ptr<QGraphicsItem>> assistantItems;
 
-    void addPoint(QPointF pos);
+    void addPoint(const QPointF& pos);
+
+signals:
+    void pointAdded(MyQGraphicsEllipseItem*);
+    void pointMoved(MyQGraphicsEllipseItem*);
+    void pointRemoved(MyQGraphicsEllipseItem*);
 
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent* event);

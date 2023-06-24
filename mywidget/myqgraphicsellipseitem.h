@@ -5,6 +5,8 @@
 #include <QRectF>
 #include <QWidget>
 
+#include <any>
+
 class MyQGraphicsEllipseItem : public QGraphicsEllipseItem
 {
 public:
@@ -15,9 +17,12 @@ public:
                            double height = 5,
                            QGraphicsItem* parent = nullptr);
 
-    void setCenterPos(const qreal posx, const qreal posy);
     void setSize(const QSize& size);
-    QPointF centerPos();
+
+    /**
+     * @brief used to obtain objects related to this ellipse item
+     */
+    std::vector<std::any> relatedObjects;
 };
 
 #endif  // MYQGRAPHICSELLIPSEITEM_H

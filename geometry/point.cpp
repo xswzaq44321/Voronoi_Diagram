@@ -1,34 +1,8 @@
 #include "point.h"
 
-Point::Point() {}
-
 Point::Point(int x, int y)
     : x(x),
       y(y)
-{
-}
-
-Point::Point(const Point* old)
-    : x(old->x),
-      y(old->y)
-{
-}
-
-Point::Point(const Point& old)
-    : x(old.x),
-      y(old.y)
-{
-}
-
-Point::Point(Point&& old)
-    : x(old.x),
-      y(old.y)
-{
-}
-
-Point::Point(const PointF* old)
-    : x((int) old->x),
-      y((int) old->y)
 {
 }
 
@@ -60,34 +34,9 @@ bool Point::operator==(const Point& rhs) const
     return (this->x == rhs.x && this->y == rhs.y);
 }
 
-bool Point::operator<(const Point& rhs) const
-{
-    return (this->x < rhs.x) || (this->x == rhs.x && this->y < rhs.y);
-}
-
-PointF::PointF() {}
-
 PointF::PointF(double x, double y)
     : x(x),
       y(y)
-{
-}
-
-PointF::PointF(const PointF* old)
-    : x(old->x),
-      y(old->y)
-{
-}
-
-PointF::PointF(const PointF& old)
-    : x(old.x),
-      y(old.y)
-{
-}
-
-PointF::PointF(const Point* old)
-    : x(old->x),
-      y(old->y)
 {
 }
 
@@ -104,6 +53,11 @@ double PointF::distance(const PointF& other) const
 PointF::operator Point() const
 {
     return Point((int) x, (int) y);
+}
+
+bool PointF::operator==(const Point& rhs) const
+{
+    return (this->x == rhs.x && this->y == rhs.y);
 }
 
 Point getVector(const Point& a, const Point& b)
