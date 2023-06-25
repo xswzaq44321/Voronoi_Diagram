@@ -94,12 +94,11 @@ void SweepLine::loadVmap(std::shared_ptr<Voronoi> vmap)
 
 void SweepLine::addSite(const std::shared_ptr<Polygon>& poly)
 {
-    SiteEvent newEvent(poly);
     // prevent duplicate points
-    auto it = siteEvent.lower_bound(newEvent);
+    auto it = siteEvent.lower_bound(poly->focus);
     if (it != siteEvent.end() && it->poly->focus == poly->focus)
         return;
-    siteEvent.push(std::move(newEvent));
+    siteEvent.emplace(poly);
 }
 
 double SweepLine::nextEvent()
@@ -136,7 +135,7 @@ double SweepLine::nextEvent()
     Parabola& pj = *event.paraIt;
     Parabola& pi = *std::prev(event.paraIt);
 
-    // new edge for above and beneath parabola
+    // new edge for parabola above and beneath pj
     auto newEdge = std::make_shared<Edge>();
     auto newPoint = std::make_shared<Point>(eventPoint);
     newEdge->a = newPoint;
@@ -162,8 +161,8 @@ double SweepLine::nextEvent()
     if (event.paraIt != beachParas.end())
         beachParas.erase(event.paraIt);
     // update neighbour's event
-    dealCircleEvent(prev);
-    dealCircleEvent(next);
+    checkCircleEvent(prev);
+    checkCircleEvent(next);
     return L;
 }
 
@@ -240,11 +239,11 @@ void SweepLine::beachAdd(const std::shared_ptr<Polygon>& poly)
     // now paraIt points to the new parabola
     ++paraIt;
     // update neighbour's event
-    dealCircleEvent(std::prev(paraIt));
-    dealCircleEvent(std::next(paraIt));
+    checkCircleEvent(std::prev(paraIt));
+    checkCircleEvent(std::next(paraIt));
 }
 
-void SweepLine::dealCircleEvent(std::list<Parabola>::iterator const& paraIt)
+void SweepLine::checkCircleEvent(std::list<Parabola>::iterator const& paraIt)
 {
     Parabola& cur = *paraIt;
 
@@ -269,8 +268,7 @@ void SweepLine::dealCircleEvent(std::list<Parabola>::iterator const& paraIt)
     PointF center = findCircumcenter(prev.focus, cur.focus, next.focus);
     // center.x + radius of circumcircle = L's value when event happens
     double x = center.x + distance(cur.focus, center);
-    CircleEvent newEvent(center, x, paraIt);
-    auto eventIt = circleEvent.push(newEvent);
+    auto eventIt = circleEvent.emplace(center, x, paraIt);
     cur.eventIt = eventIt;
 }
 

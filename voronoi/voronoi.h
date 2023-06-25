@@ -1,7 +1,7 @@
 #ifndef VORONOI_H
 #define VORONOI_H
 
-#include <list>
+#include <vector>
 
 #include "geometry/polygon.h"
 

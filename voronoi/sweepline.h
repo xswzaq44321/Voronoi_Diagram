@@ -52,9 +52,15 @@ public:
 
     bool operator>(const SiteEvent& rhs) const
     {
-        if (x == rhs.x)
-            return y > rhs.y;
-        return x > rhs.x;
+        return std::tie(x, y) > std::tie(rhs.x, rhs.y);
+    }
+    friend operator>(const PointF& lhs, const SiteEvent& rhs)
+    {
+        return std::tie(lhs.x, lhs.y) > std::tie(rhs.x, rhs.y);
+    }
+    friend operator>(const SiteEvent& lhs, const PointF& rhs)
+    {
+        return std::tie(lhs.x, lhs.y) > std::tie(rhs.x, rhs.y);
     }
 };
 
@@ -122,10 +128,10 @@ public:
 
     /**
      * @brief handles newly added circle event
-     * also maintain existed circle event and remove invalidated events
+     * also maintain existed circle event and remove deprecated events
      * @param event new circle event to add
      */
-    void dealCircleEvent(std::list<Parabola>::iterator const& paraIt);
+    void checkCircleEvent(std::list<Parabola>::iterator const& paraIt);
 
     /**
      * @brief finish open edges

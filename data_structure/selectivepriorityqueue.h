@@ -7,7 +7,7 @@ template <class Key, class Compare = std::less<Key>>
 class SelectivePriorityQueue : public std::multiset<Key, Compare>
 {
 public:
-    // Inheriting constructors
+    // inheriting constructors
     using std::multiset<Key, Compare>::multiset;
 
     using typename std::multiset<Key, Compare>::const_reference;
@@ -24,7 +24,7 @@ public:
         return this->insert(pos, std::forward<T>(value));
     }
     const_reference top() { return *prev(this->end()); }
-    void pop() { this->erase(prev(this->end())); }
+    void pop() { (void) this->erase(prev(this->end())); }
 };
 
 #endif  // SELECTIVEPRIORITYQUEUE_H
