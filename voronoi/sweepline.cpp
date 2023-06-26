@@ -65,10 +65,9 @@ Parabola::Parabola(const Point& focus,
 {
 }
 
-CircleEvent::CircleEvent(
-    const PointF& center,
-    double x,
-    std::multiset<std::list<Parabola>::iterator>::iterator const& paraIt)
+CircleEvent::CircleEvent(const PointF& center,
+                         double x,
+                         ParaTree::iterator const& paraIt)
     : center(center),
       x(x),
       paraTreeIt(paraIt)
@@ -76,12 +75,12 @@ CircleEvent::CircleEvent(
 }
 
 SweepLine::SweepLine()
-    : beachTree(IterCompare(this))
+    : beachTree(this->L)
 {
 }
 
 SweepLine::SweepLine(std::shared_ptr<Voronoi> vmap)
-    : beachTree(IterCompare(this))
+    : beachTree(this->L)
 {
     this->loadVmap(vmap);
 }
@@ -89,7 +88,6 @@ SweepLine::SweepLine(std::shared_ptr<Voronoi> vmap)
 void SweepLine::loadVmap(std::shared_ptr<Voronoi> vmap)
 {
     this->vmap = vmap;
-    beachParas.clear();
     beachTree.clear();
     siteEvent.clear();
     circleEvent.clear();
@@ -135,13 +133,13 @@ double SweepLine::nextEvent()
      * pj   (the one to be deleted from beachline)
      * pi   (beneath)
      */
-    assertm(*event.paraTreeIt != beachParas.begin() &&
-                std::next(*event.paraTreeIt) != beachParas.end(),
+    assertm(event.paraTreeIt != beachTree.begin() &&
+                std::next(event.paraTreeIt) != beachTree.end(),
             "pj (the one to be deleted from beachline) must not be the first "
             "nor the last in beachline");
-    Parabola& pk = *std::next(*event.paraTreeIt);
-    Parabola& pj = **event.paraTreeIt;
-    Parabola& pi = *std::prev(*event.paraTreeIt);
+    Parabola& pk = *std::next(event.paraTreeIt);
+    Parabola& pj = *event.paraTreeIt;
+    Parabola& pi = *std::prev(event.paraTreeIt);
 
     // new edge for parabola above and beneath pj
     auto newEdge = std::make_shared<Edge>();
@@ -166,8 +164,7 @@ double SweepLine::nextEvent()
 
     auto prev = std::prev(event.paraTreeIt);
     auto next = std::next(event.paraTreeIt);
-    if (*event.paraTreeIt != beachParas.end()) {
-        beachParas.erase(*event.paraTreeIt);
+    if (event.paraTreeIt != beachTree.end()) {
         beachTree.erase(event.paraTreeIt);
     }
     // update neighbour's event
@@ -180,67 +177,62 @@ void SweepLine::beachAdd(const std::shared_ptr<Polygon>& poly)
 {
     Parabola newPara(poly->focus, poly, circleEvent.end());
     if (beachTree.empty()) {
-        auto it = beachParas.insert(beachParas.end(), newPara);
-        beachTree.insert(it);
+        beachTree.insert(beachTree.end(), newPara);
         return;
     }
     // paraIt is an iterator pointing to the parabola that's going to be cut in
     // half by newly added parabola
     auto paraTreeIt = beachTree.find(newPara);
-    auto paraIt = *paraTreeIt;
 
-    if (paraIt->focus.x == poly->focus.x) {
+    if (paraTreeIt->focus.x == poly->focus.x) {
         // special case, first two or more point on same x coordinate
         auto newEdge = std::make_shared<Edge>();
         // the new edge will be a horizontal line, whose y is in the middle of
         // two focus
         newEdge->a = std::make_shared<Point>(
-            -LMAXVALUE, (paraIt->focus.y + poly->focus.y) / 2);
+            -LMAXVALUE, (paraTreeIt->focus.y + poly->focus.y) / 2);
         poly->edges.push_back(newEdge);
-        paraIt->poly->edges.push_back(newEdge);
-        if (paraIt->focus.y > poly->focus.y) {
-            paraIt->bottomEdge = newEdge;
+        paraTreeIt->poly->edges.push_back(newEdge);
+        if (paraTreeIt->focus.y > poly->focus.y) {
+            paraTreeIt->bottomEdge = newEdge;
             newPara.topEdge = newEdge;
-            auto it = beachParas.insert(paraIt, std::move(newPara));
-            beachTree.insert(paraTreeIt, it);
+            beachTree.insert(paraTreeIt, std::move(newPara));
         } else {
-            paraIt->topEdge = newEdge;
+            paraTreeIt->topEdge = newEdge;
             newPara.bottomEdge = newEdge;
-            auto it = beachParas.insert(std::next(paraIt), std::move(newPara));
-            beachTree.insert(std::next(paraTreeIt), it);
+            beachTree.insert(std::next(paraTreeIt), std::move(newPara));
         }
         return;
-    } else if (beachParas.size() == 2) {
+    } else if (beachTree.size() == 2) {
         // special case, on third point insertion, first two points are on the
         // same x
-        double intersection =
-            getIntersect(beachParas.front().focus, beachParas.back().focus).y;
+        double intersection = getIntersect(beachTree.front().focus,
+                                           beachTree.back().focus, this->L)
+                                  .y;
         paraTreeIt = beachTree.begin();
         if (poly->focus.y >= intersection) {
             ++paraTreeIt;
         }
     }
 
-    Parabola dupPara(paraIt->focus, paraIt->poly, circleEvent.end());
+    Parabola dupPara(paraTreeIt->focus, paraTreeIt->poly, circleEvent.end());
     auto newEdge = std::make_shared<Edge>();
 
     poly->edges.push_back(newEdge);
-    paraIt->poly->edges.push_back(newEdge);
+    paraTreeIt->poly->edges.push_back(newEdge);
 
-    dupPara.topEdge = paraIt->topEdge;
-    paraIt->topEdge = newEdge;
+    dupPara.topEdge = paraTreeIt->topEdge;
+    paraTreeIt->topEdge = newEdge;
     newPara.bottomEdge = newPara.topEdge = newEdge;
     dupPara.bottomEdge = newEdge;
 
-    auto treeIt = beachParas.insert(std::next(paraIt), std::move(newPara));
-    beachTree.insert(std::next(paraTreeIt), treeIt);
-    treeIt = beachParas.insert(std::next(paraIt, 2), std::move(dupPara));
-    beachTree.insert(std::next(paraTreeIt, 2), treeIt);
+    beachTree.insert(std::next(paraTreeIt), std::move(newPara));
+    beachTree.insert(std::next(paraTreeIt, 2), std::move(dupPara));
 
     // remove deprecated circle event
-    if (paraIt->eventIt != circleEvent.end())
-        circleEvent.erase(paraIt->eventIt);
-    paraIt->eventIt = circleEvent.end();
+    if (paraTreeIt->eventIt != circleEvent.end())
+        circleEvent.erase(paraTreeIt->eventIt);
+    paraTreeIt->eventIt = circleEvent.end();
     // now paraIt points to the new parabola
     ++paraTreeIt;
     // update neighbour's event
@@ -250,8 +242,7 @@ void SweepLine::beachAdd(const std::shared_ptr<Polygon>& poly)
 
 void SweepLine::checkCircleEvent(beachTree_iterator const& paraTreeIt)
 {
-    auto paraIt = *paraTreeIt;
-    Parabola& cur = *paraIt;
+    Parabola& cur = *paraTreeIt;
 
     // remove deprecated event
     if (cur.eventIt != circleEvent.end())
@@ -260,11 +251,12 @@ void SweepLine::checkCircleEvent(beachTree_iterator const& paraTreeIt)
 
     // if cur is the first or last parabola in beachline, there's no way it can
     // generate an event
-    if (paraIt == beachParas.begin() || std::next(paraIt) == beachParas.end())
+    if (paraTreeIt == beachTree.begin() ||
+        std::next(paraTreeIt) == beachTree.end())
         return;
 
-    Parabola& prev = *std::prev(paraIt);
-    Parabola& next = *std::next(paraIt);
+    Parabola& prev = *std::prev(paraTreeIt);
+    Parabola& next = *std::next(paraTreeIt);
     // connect a line from `prev` to `cur` to `next`, it must be concave towards
     // where L is going for the circumcenter to be after `L` and be able to
     // close `cur` parabola
@@ -280,11 +272,13 @@ void SweepLine::checkCircleEvent(beachTree_iterator const& paraTreeIt)
 
 void SweepLine::finishEdges()
 {
+    if (beachTree.size() <= 1)
+        return;
     // set L arbitrary large enough
     L = 2 * vmap->width + 2 * vmap->height;
-    for (auto it = beachParas.begin(); it != std::prev(beachParas.end());
-         ++it) {
-        PointF intersection = getIntersect(it->focus, std::next(it)->focus);
+    for (auto it = beachTree.begin(); it != std::prev(beachTree.end()); ++it) {
+        PointF intersection =
+            getIntersect(it->focus, std::next(it)->focus, this->L);
         auto newPoint = std::make_shared<Point>(intersection);
         if (!it->topEdge->a)
             it->topEdge->a = newPoint;
@@ -319,32 +313,14 @@ double SweepLine::parabolaX(const Point& focus, double y)
     }
 }
 
-PointF SweepLine::getIntersect(const PointF& A, const PointF& B) const
+PointF getIntersect(const PointF& A, const PointF& B, double directrix)
 {
-    /**
-     *  note parabola equation:
-     *  (y-k)^2=4c(x-h), with directrix = h-c, focus = (h+c, k)
-     *  now set focus as (h', k'), directrix = L
-     *  we can get k=k', h=(h'+L)/2, c=(h'-L)/2
-     *
-     *  to solve intersection, we rearrange parabola equation to:
-     *  ((y-k_1)^2)/(4c_1) + h_1 = x = ((y-k_2)^2)/(4c_2) + h_2
-     *
-     *  rearrange again gives us
-     *  (c_2 - c_1)y^2 + (-2k_1c_2 + 2k_2c_1)y + \
-     *  (k_1^2c_2-k_2^2c_1 + 4c_1c_2(h_1 - h_2)) = 0
-     *
-     *  substitude in quadratic formula: ay^2+by+c = 0
-     *  a = c_2-c_1
-     *  b = -2k_1c_2 + 2k_2c_1
-     *  c = k_1^2c_2-k_2^2c_1 + 4c_1c_2(h_1 - h_2)
-     */
     double ka = A.y;
-    double ha = (L + A.x) / 2.0;
-    double ca = -(L - A.x) / 2.0;
+    double ha = (directrix + A.x) / 2.0;
+    double ca = -(directrix - A.x) / 2.0;
     double kb = B.y;
-    double hb = (L + B.x) / 2.0;
-    double cb = -(L - B.x) / 2.0;
+    double hb = (directrix + B.x) / 2.0;
+    double cb = -(directrix - B.x) / 2.0;
     double a = cb - ca;
     double b = -2 * (cb * ka - ca * kb);
     double c = -(4 * ca * cb * (hb - ha) - cb * ka * ka + ca * kb * kb);
@@ -353,7 +329,7 @@ PointF SweepLine::getIntersect(const PointF& A, const PointF& B) const
         // a == 0 means that A.x == B.x
         if (b == 0) {
             // a == 0 && b == 0 means that A.x == B.x && A.y == B.y
-            return PointF(-LMAXVALUE, (A.y + B.y) / 2);
+            return PointF(-SweepLine::LMAXVALUE, (A.y + B.y) / 2);
         }
         double y = -c / b;
         double x = pow(y - ka, 2) / (4 * ca) + ha;
