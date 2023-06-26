@@ -67,9 +67,10 @@ public:
 class CircleEvent
 {
 public:
-    CircleEvent(const PointF& center,
-                double x,
-                std::list<Parabola>::iterator const& paraIt);
+    CircleEvent(
+        const PointF& center,
+        double x,
+        std::multiset<std::list<Parabola>::iterator>::iterator const& paraIt);
 
     PointF center;  // center of the circumcenter
     double x;       // sweepline position when event happen
@@ -78,7 +79,7 @@ public:
      * @brief parabola associated with this event
      * the one that'll be deleted from beachLine
      */
-    std::list<Parabola>::iterator const paraIt;
+    std::multiset<std::list<Parabola>::iterator>::iterator const paraTreeIt;
 
     bool operator>(const CircleEvent& rhs) const { return x > rhs.x; }
 };
@@ -86,14 +87,53 @@ public:
 class SweepLine
 {
 public:
-    SweepLine() = default;
+    SweepLine();
     SweepLine(std::shared_ptr<Voronoi> vmap);
 
     // sweep line position
     double L;
 
+private:
     // parabolas who made up the beach line
     std::list<Parabola> beachParas;
+    struct IterCompare {
+        using is_transparent = void;
+        using key_type = Parabola;
+        using Container = decltype(beachParas);
+        using iterator = Container::const_iterator;
+
+        IterCompare(const SweepLine* const parent)
+            : parent(parent)
+        {
+        }
+
+        const SweepLine* const parent;
+        bool operator()(const iterator&, const iterator&) const
+        {
+            return false;
+        }
+        bool operator()(const iterator& it, const key_type& key) const
+        {
+            double intxn2 = LMAXVALUE;
+            if (std::next(it) != parent->beachParas.end())
+                intxn2 =
+                    parent->getIntersect(it->focus, std::next(it)->focus).y;
+            return intxn2 < key.focus.y;
+        }
+        bool operator()(const key_type& key, const iterator& it) const
+        {
+            double intxn1 = -LMAXVALUE;
+            if (it != parent->beachParas.begin())
+                intxn1 =
+                    parent->getIntersect(std::prev(it)->focus, it->focus).y;
+            return key.focus.y < intxn1;
+        }
+    };
+
+public:
+    std::multiset<std::list<Parabola>::iterator, IterCompare> beachTree;
+    using beachTree_iterator =
+        std::multiset<std::list<Parabola>::iterator, IterCompare>::iterator;
 
     // priority queues of events, min heap
     SelectivePriorityQueue<SiteEvent, std::greater<>> siteEvent;
@@ -131,7 +171,7 @@ public:
      * also maintain existed circle event and remove deprecated events
      * @param event new circle event to add
      */
-    void checkCircleEvent(std::list<Parabola>::iterator const& paraIt);
+    void checkCircleEvent(beachTree_iterator const& paraTreeIt);
 
     /**
      * @brief finish open edges
@@ -159,12 +199,11 @@ public:
      * @param B focus point of parabola
      * @return intersection point of two parabola
      */
-    PointF getIntersect(const PointF& A, const PointF& B);
-    PointF getIntersect(const Point& A, const Point& B);
+    PointF getIntersect(const PointF& A, const PointF& B) const;
 
 public:
-    const double LMAXVALUE = std::numeric_limits<double>::max();
-    const float MAXVALUE = std::numeric_limits<float>::max();
+    static constexpr double LMAXVALUE = std::numeric_limits<double>::max();
+    static constexpr float MAXVALUE = std::numeric_limits<float>::max();
 };
 
 #endif  // SWEEPLINE_H
