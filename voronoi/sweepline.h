@@ -88,17 +88,17 @@ public:
 		decltype(beachTree)::iterator it;
 		friend class ParaTree;
 
+		iterator(decltype(beachTree)::iterator _it)
+			: it(_it)
+		{
+		}
+
 	public:
 		using iterator_category = std::bidirectional_iterator_tag;
 		using difference_type = Container::difference_type;
 		using pointer = Container::pointer;
 		using reference = Container::reference;
 		using value_type = Container::value_type;
-
-		iterator(decltype(beachTree)::iterator _it)
-			: it(_it)
-		{
-		}
 		iterator& operator++()
 		{
 			++it;
