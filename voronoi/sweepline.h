@@ -183,11 +183,11 @@ public:
 	{
 		return std::tie(x, y) > std::tie(rhs.x, rhs.y);
 	}
-	friend operator>(const PointF& lhs, const SiteEvent& rhs)
+	friend bool operator>(const PointF& lhs, const SiteEvent& rhs)
 	{
 		return std::tie(lhs.x, lhs.y) > std::tie(rhs.x, rhs.y);
 	}
-	friend operator>(const SiteEvent& lhs, const PointF& rhs)
+	friend bool operator>(const SiteEvent& lhs, const PointF& rhs)
 	{
 		return std::tie(lhs.x, lhs.y) > std::tie(rhs.x, rhs.y);
 	}
