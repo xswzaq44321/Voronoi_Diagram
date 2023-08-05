@@ -203,16 +203,6 @@ void SweepLine::beachAdd(const std::shared_ptr<Polygon>& poly)
             beachTree.insert(std::next(paraTreeIt), std::move(newPara));
         }
         return;
-    } else if (beachTree.size() == 2) {
-        // special case, on third point insertion, first two points are on the
-        // same x
-        double intersection = getIntersect(beachTree.front().focus,
-                                           beachTree.back().focus, this->L)
-                                  .y;
-        paraTreeIt = beachTree.begin();
-        if (poly->focus.y >= intersection) {
-            ++paraTreeIt;
-        }
     }
 
     Parabola dupPara(paraTreeIt->focus, paraTreeIt->poly, circleEvent.end());
