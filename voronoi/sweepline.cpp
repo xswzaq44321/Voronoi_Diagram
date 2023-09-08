@@ -75,12 +75,12 @@ CircleEvent::CircleEvent(const PointF& center,
 }
 
 SweepLine::SweepLine()
-    : beachTree(this->L)
+    : beachTree(&this->L)
 {
 }
 
 SweepLine::SweepLine(std::shared_ptr<Voronoi> vmap)
-    : beachTree(this->L)
+    : beachTree(&this->L)
 {
     this->loadVmap(vmap);
 }
